@@ -24,11 +24,53 @@ export default function Page({ params }: { params: Promise<{ id: number }> }) {
     });
   };
 
-  const deletePostComment = (id: number, commentId: number) => {
+  const deleteComment = (id: number, commentId: number) => {
     apiFetch(`/api/v1/posts/${id}/comment/${commentId}`, {
       method: "DELETE",
     }).then((data) => {
       alert(data.msg);
+
+      if (postComments == null) return;
+
+      setPostComments(postComments.filter((c) => c.id != commentId));
+
+      if (postComments != null) {
+        setPostComments(postComments.filter((c) => c.id != commentId));
+      }
+    });
+  };
+
+  const handleCommentWriteFormSubmit = (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
+
+    const form = e.target as HTMLFormElement;
+
+    const contentTextarea = form.elements.namedItem(
+      "content"
+    ) as HTMLTextAreaElement;
+
+    contentTextarea.value = contentTextarea.value.trim();
+
+    if (contentTextarea.value.length === 0) {
+      alert("댓글 내용을 입력해주세요.");
+      contentTextarea.focus();
+      return;
+    }
+
+    apiFetch(`/api/v1/posts/${id}/comments`, {
+      method: "POST",
+      body: JSON.stringify({
+        content: contentTextarea.value,
+      }),
+    }).then((data) => {
+      alert(data.msg);
+      contentTextarea.value = "";
+
+      if (postComments == null) return;
+
+      setPostComments([...postComments, data.data]);
     });
   };
 
@@ -63,6 +105,19 @@ export default function Page({ params }: { params: Promise<{ id: number }> }) {
         </Link>
       </div>
 
+      <h2>댓글 작성</h2>
+
+      <form className="flex gap-2 p-2" onSubmit={handleCommentWriteFormSubmit}>
+        <textarea
+          className="border p-2 rounded"
+          name="content"
+          placeholder="댓글 내용"
+        />
+        <button className="p-2 rounded border" type="submit">
+          작성
+        </button>
+      </form>
+
       <h2>댓글 목록</h2>
 
       {postComments == null && <div>댓글 로딩중...</div>}
@@ -74,12 +129,12 @@ export default function Page({ params }: { params: Promise<{ id: number }> }) {
       {postComments != null && postComments.length > 0 && (
         <ul>
           {postComments.map((comment) => (
-            <li key={comment.id}>{comment.content}
+            <li key={comment.id}>{comment.id} : {comment.content}
               <button
-                className="p-2 rounded border"
+                className="ml-2 p-2 rounded border"
                 onClick={() =>
                   confirm(`${comment.id}번 글을 정말로 삭제하시겠습니까?`) &&
-                  deletePostComment(comment.id)
+                  deleteComment(id, comment.id)
                 }
               >
                 삭제
